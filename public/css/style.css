@@ -29,7 +29,7 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: fl
 .sidebar a:hover, .sidebar a.active { background: #34495e; }
 
 /* Main content */
-.main { flex: 1; padding: 30px; overflow-y: auto; margin-top: 0; }
+.main { flex: 1; padding: 30px; overflow-y: auto; margin-top: 60px; }
 .main-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
 .main-header h1 { color: #2c3e50; font-size: 1.8em; }
 
