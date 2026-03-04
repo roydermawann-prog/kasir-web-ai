@@ -67,76 +67,255 @@ db.serialize(() => {
   });
 });
 
-// Route: Home page
-app.get('/', (req, res) => {
+// Route: Dashboard (Barang management)
+app.get('/dashboard', (req, res) => {
   res.send(`
-    <!DOCTYPE html>
-    <html lang="id">
-    <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Kasir AI - Sistem Point of Sale</title>
-      <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background: #f5f5f5; color: #333; }
-        h1 { color: #2c3e50; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-        .status { padding: 15px; background: #d4edda; border: 1px solid #c3e6cb; border-radius: 5px; margin: 20px 0; }
-        .api-test { margin-top: 20px; }
-        button { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin: 5px; }
-        button:hover { background: #2980b9; }
-        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; overflow-x: auto; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <h1>🛒 Kasir AI (SQLite Edition)</h1>
-        <p>Sistem Point of Sale dengan database SQLite</p>
-        
-        <div class="status">
-          <strong>✅ Server berjalan!</strong><br>
-          Port: ${PORT}<br>
-          Database: kasir.db<br>
-          Waktu: ${new Date().toLocaleString('id-ID')}
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasir AI - Dashboard Barang</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; background: #f5f5f5; }
+    /* Sidebar */
+    .sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px; }
+    .sidebar h2 { margin-bottom: 30px; font-size: 1.5em; }
+    .sidebar ul { list-style: none; }
+    .sidebar li { margin-bottom: 10px; }
+    .sidebar a { color: #ecf0f1; text-decoration: none; display: block; padding: 12px; border-radius: 5px; transition: background 0.3s; }
+    .sidebar a:hover, .sidebar a.active { background: #34495e; }
+    /* Main content */
+    .main { flex: 1; padding: 30px; overflow-y: auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .header h1 { color: #2c3e50; }
+    .btn { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+    .btn:hover { background: #2980b9; }
+    .btn-danger { background: #e74c3c; }
+    .btn-danger:hover { background: #c0392b; }
+    .btn-success { background: #27ae60; }
+    .btn-success:hover { background: #229954; }
+    /* Form */
+    .form-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px; }
+    .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
+    .form-group { flex: 1; }
+    .form-group label { display: block; margin-bottom: 5px; color: #555; }
+    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+    .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
+    /* Table */
+    .table-container { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #34495e; color: white; font-weight: 600; }
+    tr:hover { background: #f9f9f9; }
+    .action-btns { display: flex; gap: 5px; }
+    .action-btns button { padding: 5px 10px; font-size: 12px; }
+    .empty-state { text-align: center; padding: 40px; color: #999; }
+    /* Alert */
+    .alert { padding: 12px; border-radius: 5px; margin-bottom: 20px; display: none; }
+    .alert.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+    .alert.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+  </style>
+</head>
+<body>
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <h2>🛒 Kasir AI</h2>
+    <ul>
+      <li><a href="/" class="">🏠 Home</a></li>
+      <li><a href="/dashboard" class="active">📦 Barang</a></li>
+      <li><a href="/api/orders" onclick="event.preventDefault(); alert('Halaman Orders belum tersedia')">🧾 Orders</a></li>
+    </ul>
+  </div>
+
+  <!-- Main Content -->
+  <div class="main">
+    <div class="header">
+      <h1>📦 Manajemen Barang</h1>
+    </div>
+
+    <!-- Alert -->
+    <div id="alert" class="alert"></div>
+
+    <!-- Form Add/Edit -->
+    <div class="form-card">
+      <h3 id="formTitle" style="margin-bottom: 15px;">Tambah Barang Baru</h3>
+      <form id="productForm">
+        <input type="hidden" id="editId">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nama Barang</label>
+            <input type="text" id="name" placeholder="Contoh: Kopi Hitam" required>
+          </div>
+          <div class="form-group">
+            <label>Harga (Rp)</label>
+            <input type="number" id="price" placeholder="15000" required min="0">
+          </div>
+          <div class="form-group">
+            <label>Kategori</label>
+            <select id="category" required>
+              <option value="">Pilih kategori</option>
+              <option value="Minuman">Minuman</option>
+              <option value="Makanan">Makanan</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
         </div>
-
-        <div class="api-test">
-          <h3>Test API:</h3>
-          <button onclick="testAPI('products')">GET /api/products</button>
-          <button onclick="testAPI('orders')">POST /api/orders</button>
-          <button onclick="testAPI('orders-list')">GET /api/orders</button>
-          <pre id="result">Klik tombol di atas untuk test...</pre>
+        <div class="form-actions">
+          <button type="button" id="cancelBtn" class="btn" style="display: none;">Batal</button>
+          <button type="submit" class="btn btn-success" id="submitBtn">Tambah Barang</button>
         </div>
+      </form>
+    </div>
 
-        <h3>Endpoints tersedia:</h3>
-        <ul>
-          <li><code>GET /</code> - Halaman ini</li>
-          <li><code>GET /api/status</code> - Status server</li>
-          <li><code>GET /api/products</code> - List produk dari DB</li>
-          <li><code>GET /api/orders</code> - Riwayat orders</li>
-          <li><code>POST /api/orders</code> - Buat pesanan baru (body: {product, qty})</li>
-        </ul>
-      </div>
+    <!-- Products Table -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nama Barang</th>
+            <th>Harga (Rp)</th>
+            <th>Kategori</th>
+            <th>Ditambahkan</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="productsTable">
+          <tr><td colspan="6" class="empty-state">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
-      <script>
-        async function testAPI(endpoint) {
-          const resultEl = document.getElementById('result');
-          resultEl.textContent = 'Loading...';
-          
-          try {
-            const response = await fetch('/api/' + endpoint, {
-              method: endpoint === 'orders' ? 'POST' : 'GET',
-              headers: { 'Content-Type': 'application/json' },
-              body: endpoint === 'orders' ? JSON.stringify({ product: 'Kopi', qty: 2 }) : null
-            });
-            const data = await response.json();
-            resultEl.textContent = JSON.stringify(data, null, 2);
-          } catch (error) {
-            resultEl.textContent = 'Error: ' + error.message;
+  <script>
+    const API_URL = '/api';
+    const form = document.getElementById('productForm');
+    const tableBody = document.getElementById('productsTable');
+    const alertDiv = document.getElementById('alert');
+    const formTitle = document.getElementById('formTitle');
+    const editIdInput = document.getElementById('editId');
+    const nameInput = document.getElementById('name');
+    const priceInput = document.getElementById('price');
+    const categoryInput = document.getElementById('category');
+    const cancelBtn = document.getElementById('cancelBtn');
+    const submitBtn = document.getElementById('submitBtn');
+
+    let isEditing = false;
+
+    function showAlert(message, type = 'success') {
+      alertDiv.textContent = message;
+      alertDiv.className = 'alert ' + type;
+      alertDiv.style.display = 'block';
+      setTimeout(() => alertDiv.style.display = 'none', 3000);
+    }
+
+    function loadProducts() {
+      fetch(API_URL + '/products')
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) throw new Error(data.error);
+          tableBody.innerHTML = '';
+          if (data.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="6" class="empty-state">Tidak ada barang. Tambahkan barang pertama!</td></tr>';
+            return;
           }
-        }
-      </script>
-    </body>
-    </html>
+          data.forEach(p => {
+            const row = document.createElement('tr');
+            row.innerHTML = \`
+              <td>\${p.id}</td>
+              <td>\${p.name}</td>
+              <td>Rp \${Number(p.price).toLocaleString('id-ID')}</td>
+              <td>\${p.category}</td>
+              <td>\${new Date(p.created_at).toLocaleDateString('id-ID')}</td>
+              <td>
+                <div class="action-btns">
+                  <button class="btn" onclick="editProduct(\${p.id}, '\${p.name}', \${p.price}, '\${p.category}')">Edit</button>
+                  <button class="btn btn-danger" onclick="deleteProduct(\${p.id})">Hapus</button>
+                </div>
+              </td>
+            \`;
+            tableBody.appendChild(row);
+          });
+        })
+        .catch(err => showAlert('Gagal memuat produk: ' + err.message, 'error'));
+    }
+
+    function editProduct(id, name, price, category) {
+      isEditing = true;
+      editIdInput.value = id;
+      nameInput.value = name;
+      priceInput.value = price;
+      categoryInput.value = category;
+      formTitle.textContent = 'Edit Barang';
+      submitBtn.textContent = 'Update Barang';
+      submitBtn.classList.remove('btn-success');
+      submitBtn.classList.add('btn-danger');
+      cancelBtn.style.display = 'inline-block';
+      nameInput.focus();
+    }
+
+    function resetForm() {
+      isEditing = false;
+      form.reset();
+      editIdInput.value = '';
+      formTitle.textContent = 'Tambah Barang Baru';
+      submitBtn.textContent = 'Tambah Barang';
+      submitBtn.classList.remove('btn-danger');
+      submitBtn.classList.add('btn-success');
+      cancelBtn.style.display = 'none';
+    }
+
+    function deleteProduct(id) {
+      if (!confirm('Hapus barang ini?')) return;
+      fetch(API_URL + '/products/' + id, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) throw new Error(data.error);
+          showAlert(data.message, 'success');
+          loadProducts();
+        })
+        .catch(err => showAlert('Gagal menghapus: ' + err.message, 'error'));
+    }
+
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const name = nameInput.value.trim();
+      const price = parseFloat(priceInput.value);
+      const category = categoryInput.value;
+
+      if (!name || isNaN(price) || !category) {
+        showAlert('Mohon lengkapi semua field', 'error');
+        return;
+      }
+
+      const url = API_URL + (isEditing ? '/products/' + editIdInput.value : '/products');
+      const method = isEditing ? 'PUT' : 'POST';
+      const body = { name, price, category };
+
+      fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) throw new Error(data.error);
+          showAlert(isEditing ? 'Barang berhasil diupdate' : 'Barang berhasil ditambahkan', 'success');
+          resetForm();
+          loadProducts();
+        })
+        .catch(err => showAlert('Gagal: ' + err.message, 'error'));
+    });
+
+    cancelBtn.addEventListener('click', resetForm);
+
+    // Initial load
+    loadProducts();
+  </script>
+</body>
+</html>
   `);
 });
 
@@ -159,6 +338,80 @@ app.get('/api/products', (req, res) => {
       return;
     }
     res.json(rows);
+  });
+});
+
+// API: Create product
+app.post('/api/products', (req, res) => {
+  const { name, price, category } = req.body;
+  if (!name || !price || !category) {
+    return res.status(400).json({ error: 'Name, price, and category are required' });
+  }
+  db.run(
+    `INSERT INTO products (name, price, category) VALUES (?, ?, ?)`,
+    [name, price, category],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.status(201).json({
+        success: true,
+        id: this.lastID,
+        name,
+        price,
+        category,
+        message: 'Product created'
+      });
+    }
+  );
+});
+
+// API: Update product
+app.put('/api/products/:id', (req, res) => {
+  const { id } = req.params;
+  const { name, price, category } = req.body;
+  if (!name || !price || !category) {
+    return res.status(400).json({ error: 'Name, price, and category are required' });
+  }
+  db.run(
+    `UPDATE products SET name = ?, price = ?, category = ? WHERE id = ?`,
+    [name, price, category, id],
+    function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      if (this.changes === 0) {
+        return res.status(404).json({ error: 'Product not found' });
+      }
+      res.json({
+        success: true,
+        id: parseInt(id),
+        name,
+        price,
+        category,
+        message: 'Product updated'
+      });
+    }
+  );
+});
+
+// API: Delete product
+app.delete('/api/products/:id', (req, res) => {
+  const { id } = req.params;
+  db.run(`DELETE FROM products WHERE id = ?`, [id], function(err) {
+    if (err) {
+      res.status(500).json({ error: err.message });
+      return;
+    }
+    if (this.changes === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    res.json({
+      success: true,
+      message: `Product ${id} deleted`
+    });
   });
 });
 
