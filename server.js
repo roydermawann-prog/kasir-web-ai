@@ -68,6 +68,7 @@ db.serialize(() => {
 });
 
 // Route: Dashboard (Barang management)
+// Route: Dashboard (Barang management) - Modal Based UI
 app.get('/dashboard', (req, res) => {
   res.send(`
 <!DOCTYPE html>
@@ -79,31 +80,23 @@ app.get('/dashboard', (req, res) => {
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; display: flex; height: 100vh; background: #f5f5f5; }
-    /* Sidebar */
     .sidebar { width: 250px; background: #2c3e50; color: white; padding: 20px; }
     .sidebar h2 { margin-bottom: 30px; font-size: 1.5em; }
     .sidebar ul { list-style: none; }
     .sidebar li { margin-bottom: 10px; }
     .sidebar a { color: #ecf0f1; text-decoration: none; display: block; padding: 12px; border-radius: 5px; transition: background 0.3s; }
     .sidebar a:hover, .sidebar a.active { background: #34495e; }
-    /* Main content */
     .main { flex: 1; padding: 30px; overflow-y: auto; }
     .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
     .header h1 { color: #2c3e50; }
-    .btn { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+    .btn { background: #3498db; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; font-size: 14px; transition: background 0.3s; }
     .btn:hover { background: #2980b9; }
     .btn-danger { background: #e74c3c; }
     .btn-danger:hover { background: #c0392b; }
     .btn-success { background: #27ae60; }
     .btn-success:hover { background: #229954; }
-    /* Form */
-    .form-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); margin-bottom: 30px; }
-    .form-row { display: flex; gap: 15px; margin-bottom: 15px; }
-    .form-group { flex: 1; }
-    .form-group label { display: block; margin-bottom: 5px; color: #555; }
-    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
-    .form-actions { display: flex; gap: 10px; justify-content: flex-end; }
-    /* Table */
+    .btn-secondary { background: #95a5a6; }
+    .btn-secondary:hover { background: #7f8c8d; }
     .table-container { background: white; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
     table { width: 100%; border-collapse: collapse; }
     th, td { padding: 12px 15px; text-align: left; border-bottom: 1px solid #eee; }
@@ -112,14 +105,24 @@ app.get('/dashboard', (req, res) => {
     .action-btns { display: flex; gap: 5px; }
     .action-btns button { padding: 5px 10px; font-size: 12px; }
     .empty-state { text-align: center; padding: 40px; color: #999; }
-    /* Alert */
     .alert { padding: 12px; border-radius: 5px; margin-bottom: 20px; display: none; }
     .alert.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
     .alert.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: none; align-items: center; justify-content: center; z-index: 1000; }
+    .modal { background: white; border-radius: 10px; width: 90%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+    .modal-header { padding: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h3 { color: #2c3e50; }
+    .modal-close { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; line-height: 1; }
+    .modal-close:hover { color: #333; }
+    .modal-body { padding: 20px; }
+    .modal-footer { padding: 20px; border-top: 1px solid #eee; text-align: right; }
+    .form-group { margin-bottom: 15px; }
+    .form-group label { display: block; margin-bottom: 5px; color: #555; font-weight: 500; }
+    .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 5px; font-size: 14px; }
+    .form-group input:focus, .form-group select:focus { outline: none; border-color: #3498db; }
   </style>
 </head>
 <body>
-  <!-- Sidebar -->
   <div class="sidebar">
     <h2>🛒 Kasir AI</h2>
     <ul>
@@ -129,47 +132,14 @@ app.get('/dashboard', (req, res) => {
     </ul>
   </div>
 
-  <!-- Main Content -->
   <div class="main">
     <div class="header">
       <h1>📦 Manajemen Barang</h1>
+      <button class="btn btn-success" onclick="openModal()">+ Tambah Barang</button>
     </div>
 
-    <!-- Alert -->
     <div id="alert" class="alert"></div>
 
-    <!-- Form Add/Edit -->
-    <div class="form-card">
-      <h3 id="formTitle" style="margin-bottom: 15px;">Tambah Barang Baru</h3>
-      <form id="productForm">
-        <input type="hidden" id="editId">
-        <div class="form-row">
-          <div class="form-group">
-            <label>Nama Barang</label>
-            <input type="text" id="name" placeholder="Contoh: Kopi Hitam" required>
-          </div>
-          <div class="form-group">
-            <label>Harga (Rp)</label>
-            <input type="number" id="price" placeholder="15000" required min="0">
-          </div>
-          <div class="form-group">
-            <label>Kategori</label>
-            <select id="category" required>
-              <option value="">Pilih kategori</option>
-              <option value="Minuman">Minuman</option>
-              <option value="Makanan">Makanan</option>
-              <option value="Lainnya">Lainnya</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-actions">
-          <button type="button" id="cancelBtn" class="btn" style="display: none;">Batal</button>
-          <button type="submit" class="btn btn-success" id="submitBtn">Tambah Barang</button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Products Table -->
     <div class="table-container">
       <table>
         <thead>
@@ -189,26 +159,142 @@ app.get('/dashboard', (req, res) => {
     </div>
   </div>
 
+  <!-- Modal Form (Add/Edit) -->
+  <div id="formModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Tambah Barang</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="productForm">
+          <input type="hidden" id="editId">
+          <div class="form-group">
+            <label for="name">Nama Barang</label>
+            <input type="text" id="name" placeholder="Contoh: Kopi Hitam" required>
+          </div>
+          <div class="form-group">
+            <label for="price">Harga (Rp)</label>
+            <input type="text" id="price" placeholder="0" required>
+          </div>
+          <div class="form-group">
+            <label for="category">Kategori</label>
+            <select id="category" required>
+              <option value="">Pilih kategori</option>
+              <option value="Minuman">Minuman</option>
+              <option value="Makanan">Makanan</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+        <button class="btn btn-success" onclick="submitForm()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Delete Confirmation -->
+  <div id="deleteModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Konfirmasi Hapus</h3>
+        <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Hapus barang <strong id="deleteProductName"></strong>?</p>
+        <p style="color: #e74c3c; margin-top: 10px;">Tindakan tidak dapat dibatalkan.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeDeleteModal()">Batal</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">Hapus</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const API_URL = '/api';
-    const form = document.getElementById('productForm');
     const tableBody = document.getElementById('productsTable');
     const alertDiv = document.getElementById('alert');
-    const formTitle = document.getElementById('formTitle');
+    const formModal = document.getElementById('formModal');
+    const deleteModal = document.getElementById('deleteModal');
+    const modalTitle = document.getElementById('modalTitle');
     const editIdInput = document.getElementById('editId');
     const nameInput = document.getElementById('name');
     const priceInput = document.getElementById('price');
     const categoryInput = document.getElementById('category');
-    const cancelBtn = document.getElementById('cancelBtn');
-    const submitBtn = document.getElementById('submitBtn');
+    const deleteProductName = document.getElementById('deleteProductName');
+    const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
 
     let isEditing = false;
+    let deleteId = null;
+
+    // Rupiah formatting
+    const rupiahFormatters = [];
+    priceInput.addEventListener('input', (e) => {
+      const value = e.target.value.replace(/[^0-9]/g, '');
+      if (value) {
+        const formatted = new Intl.NumberFormat('id-ID').format(value);
+        rupiahFormatters[e.target] = value;
+        e.target.value = formatted;
+      } else {
+        rupiahFormatters[e.target] = '';
+      }
+    });
+
+    priceInput.addEventListener('blur', (e) => {
+      if (!e.target.value) return;
+      const raw = rupiahFormatters[e.target] || e.target.value.replace(/[^0-9]/g, '');
+      e.target.value = raw ? new Intl.NumberFormat('id-ID').format(raw) : '';
+    });
+
+    priceInput.addEventListener('focus', (e) => {
+      if (e.target.value) {
+        const raw = rupiahFormatters[e.target] || e.target.value.replace(/[^0-9]/g, '');
+        e.target.value = raw;
+      }
+    });
 
     function showAlert(message, type = 'success') {
       alertDiv.textContent = message;
       alertDiv.className = 'alert ' + type;
       alertDiv.style.display = 'block';
       setTimeout(() => alertDiv.style.display = 'none', 3000);
+    }
+
+    function openModal(product = null) {
+      isEditing = !!product;
+      if (product) {
+        modalTitle.textContent = 'Edit Barang';
+        editIdInput.value = product.id;
+        nameInput.value = product.name;
+        priceInput.value = product.price ? new Intl.NumberFormat('id-ID').format(product.price) : '';
+        categoryInput.value = product.category;
+      } else {
+        modalTitle.textContent = 'Tambah Barang Baru';
+        document.getElementById('productForm').reset();
+        editIdInput.value = '';
+      }
+      formModal.style.display = 'flex';
+    }
+
+    function closeModal() {
+      formModal.style.display = 'none';
+      document.getElementById('productForm').reset();
+      editIdInput.value = '';
+      isEditing = false;
+    }
+
+    function openDeleteModal(id, name) {
+      deleteId = id;
+      deleteProductName.textContent = name;
+      deleteModal.style.display = 'flex';
+    }
+
+    function closeDeleteModal() {
+      deleteModal.style.display = 'none';
+      deleteId = null;
     }
 
     function loadProducts() {
@@ -231,8 +317,8 @@ app.get('/dashboard', (req, res) => {
               <td>\${new Date(p.created_at).toLocaleDateString('id-ID')}</td>
               <td>
                 <div class="action-btns">
-                  <button class="btn" onclick="editProduct(\${p.id}, '\${p.name}', \${p.price}, '\${p.category}')">Edit</button>
-                  <button class="btn btn-danger" onclick="deleteProduct(\${p.id})">Hapus</button>
+                  <button class="btn" onclick="openModal({id:\${p.id}, name:'\${p.name}', price:\${p.price}, category:'\${p.category}'})">Edit</button>
+                  <button class="btn btn-danger" onclick="openDeleteModal(\${p.id}, '\${p.name}')">Hapus</button>
                 </div>
               </td>
             \`;
@@ -242,51 +328,14 @@ app.get('/dashboard', (req, res) => {
         .catch(err => showAlert('Gagal memuat produk: ' + err.message, 'error'));
     }
 
-    function editProduct(id, name, price, category) {
-      isEditing = true;
-      editIdInput.value = id;
-      nameInput.value = name;
-      priceInput.value = price;
-      categoryInput.value = category;
-      formTitle.textContent = 'Edit Barang';
-      submitBtn.textContent = 'Update Barang';
-      submitBtn.classList.remove('btn-success');
-      submitBtn.classList.add('btn-danger');
-      cancelBtn.style.display = 'inline-block';
-      nameInput.focus();
-    }
-
-    function resetForm() {
-      isEditing = false;
-      form.reset();
-      editIdInput.value = '';
-      formTitle.textContent = 'Tambah Barang Baru';
-      submitBtn.textContent = 'Tambah Barang';
-      submitBtn.classList.remove('btn-danger');
-      submitBtn.classList.add('btn-success');
-      cancelBtn.style.display = 'none';
-    }
-
-    function deleteProduct(id) {
-      if (!confirm('Hapus barang ini?')) return;
-      fetch(API_URL + '/products/' + id, { method: 'DELETE' })
-        .then(res => res.json())
-        .then(data => {
-          if (data.error) throw new Error(data.error);
-          showAlert(data.message, 'success');
-          loadProducts();
-        })
-        .catch(err => showAlert('Gagal menghapus: ' + err.message, 'error'));
-    }
-
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
+    function submitForm() {
       const name = nameInput.value.trim();
-      const price = parseFloat(priceInput.value);
+      const rawPrice = priceInput.value.replace(/[^0-9]/g, '');
+      const price = parseInt(rawPrice, 10);
       const category = categoryInput.value;
 
       if (!name || isNaN(price) || !category) {
-        showAlert('Mohon lengkapi semua field', 'error');
+        showAlert('Mohon lengkapi semua field dengan benar', 'error');
         return;
       }
 
@@ -303,15 +352,32 @@ app.get('/dashboard', (req, res) => {
         .then(data => {
           if (data.error) throw new Error(data.error);
           showAlert(isEditing ? 'Barang berhasil diupdate' : 'Barang berhasil ditambahkan', 'success');
-          resetForm();
+          closeModal();
           loadProducts();
         })
         .catch(err => showAlert('Gagal: ' + err.message, 'error'));
+    }
+
+    confirmDeleteBtn.addEventListener('click', () => {
+      if (!deleteId) return;
+      fetch(API_URL + '/products/' + deleteId, { method: 'DELETE' })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) throw new Error(data.error);
+          showAlert(data.message, 'success');
+          closeDeleteModal();
+          loadProducts();
+        })
+        .catch(err => showAlert('Gagal menghapus: ' + err.message, 'error'));
     });
 
-    cancelBtn.addEventListener('click', resetForm);
+    formModal.addEventListener('click', (e) => {
+      if (e.target === formModal) closeModal();
+    });
+    deleteModal.addEventListener('click', (e) => {
+      if (e.target === deleteModal) closeDeleteModal();
+    });
 
-    // Initial load
     loadProducts();
   </script>
 </body>
