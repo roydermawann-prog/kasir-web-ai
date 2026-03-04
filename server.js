@@ -466,17 +466,27 @@ app.put('/api/products/:id', (req, res) => {
 // API: Delete product
 app.delete('/api/products/:id', (req, res) => {
   const { id } = req.params;
-  db.run(`DELETE FROM products WHERE id = ?`, [id], function(err) {
+  // Get product name first for response message
+  db.get(`SELECT name FROM products WHERE id = ?`, [id], (err, row) => {
     if (err) {
       res.status(500).json({ error: err.message });
       return;
     }
-    if (this.changes === 0) {
+    if (!row) {
       return res.status(404).json({ error: 'Product not found' });
     }
-    res.json({
-      success: true,
-      message: `Product ${id} deleted`
+    const productName = row.name;
+    // Now delete
+    db.run(`DELETE FROM products WHERE id = ?`, [id], function(err) {
+      if (err) {
+        res.status(500).json({ error: err.message });
+        return;
+      }
+      res.json({
+        success: true,
+        message: `"${productName}" berhasil dihapus`,
+        deletedProduct: productName
+      });
     });
   });
 });
