@@ -229,6 +229,7 @@ app.get('/dashboard', (req, res) => {
 
     let isEditing = false;
     let deleteId = null;
+    let alertTimeout;
 
     // Rupiah formatting
     const rupiahFormatters = [];
@@ -257,10 +258,11 @@ app.get('/dashboard', (req, res) => {
     });
 
     function showAlert(message, type = 'success') {
+      if (alertTimeout) clearTimeout(alertTimeout);
       alertDiv.textContent = message;
       alertDiv.className = 'alert ' + type;
       alertDiv.style.display = 'block';
-      setTimeout(() => alertDiv.style.display = 'none', 3000);
+      alertTimeout = setTimeout(() => alertDiv.style.display = 'none', 3000);
     }
 
     function openModal(product = null) {
