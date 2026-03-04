@@ -5,10 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Kasir AI - Dashboard Barang</title>
   <link rel="stylesheet" href="/css/style.css">
+  <!-- Chart.js from CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+  <!-- Top Header Bar -->
+  <div class="top-header">
+    <div class="logo">🛒 Kasir AI</div>
+  </div>
+  <div class="header-spacer"></div>
+
   <div class="sidebar">
-    <h2>🛒 Kasir AI</h2>
+    <h2>Menu</h2>
     <ul>
       <li><a href="/" class="">🏠 Home</a></li>
       <li><a href="/dashboard" class="active">📦 Barang</a></li>
@@ -17,13 +25,60 @@
   </div>
 
   <div class="main">
-    <div class="header">
-      <h1>📦 Manajemen Barang</h1>
+    <div class="main-header">
+      <h1>📊 Dashboard Kasir</h1>
       <button class="btn btn-success" onclick="openModal()">+ Tambah Barang</button>
     </div>
 
+    <!-- Alert -->
     <div id="alert" class="alert"></div>
 
+    <!-- Statistics Cards -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card primary">
+        <h3>Total Produk</h3>
+        <div class="value" id="statProducts">-</div>
+        <div class="sub">Dari database</div>
+      </div>
+      <div class="stat-card success">
+        <h3>Total Orders</h3>
+        <div class="value" id="statOrders">-</div>
+        <div class="sub">Transaksi</div>
+      </div>
+      <div class="stat-card warning">
+        <h3>Rata-rata Harga</h3>
+        <div class="value" id="statAvgPrice">-</div>
+        <div class="sub">Per produk</div>
+      </div>
+    </div>
+
+    <!-- Chart -->
+    <div class="chart-container">
+      <h2>📈 Kategori Produk</h2>
+      <div class="chart-wrapper">
+        <canvas id="categoryChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="recent-orders">
+      <h2>🧾 Recent Orders</h2>
+      <table class="recent-table">
+        <thead>
+          <tr>
+            <th>Order Code</th>
+            <th>Produk</th>
+            <th>Qty</th>
+            <th>Waktu</th>
+          </tr>
+        </thead>
+        <tbody id="recentOrdersBody">
+          <tr><td colspan="4" class="empty-state">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Products Table -->
     <div class="table-container">
       <table>
         <thead>
@@ -98,5 +153,105 @@
   </div>
 
   <script src="/js/dashboard.js"></script>
+  <script>
+    // Dashboard stats & chart logic
+    const API_URL = '/api';
+    let categoryChart = null;
+
+    // Fetch stats
+    async function loadStats() {
+      try {
+        const [productsRes, ordersRes] = await Promise.all([
+          fetch(API_URL + '/products'),
+          fetch(API_URL + '/orders')
+        ]);
+        const products = await productsRes.json();
+        const orders = await ordersRes.json();
+
+        // Stats
+        document.getElementById('statProducts').textContent = products.length;
+        document.getElementById('statOrders').textContent = orders.length;
+
+        // Avg price
+        if (products.length > 0) {
+          const avg = Math.round(products.reduce((sum, p) => sum + Number(p.price), 0) / products.length);
+          document.getElementById('statAvgPrice').textContent = new Intl.NumberFormat('id-ID').format(avg);
+        } else {
+          document.getElementById('statAvgPrice').textContent = '0';
+        }
+
+        // Category chart
+        renderCategoryChart(products);
+
+        // Recent orders table (top 5)
+        renderRecentOrders(orders.slice(0, 5));
+      } catch (err) {
+        console.error('Failed to load stats:', err);
+      }
+    }
+
+    function renderCategoryChart(products) {
+      const ctx = document.getElementById('categoryChart').getContext('2d');
+      const categories = {};
+      products.forEach(p => {
+        categories[p.category] = (categories[p.category] || 0) + 1;
+      });
+      const labels = Object.keys(categories);
+      const data = Object.values(categories);
+
+      if (categoryChart) categoryChart.destroy();
+
+      categoryChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: labels,
+          datasets: [{
+            data: data,
+            backgroundColor: [
+              '#3498db', '#27ae60', '#e74c3c', '#f39c12', '#9b59b6', '#1abc9c'
+            ],
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'right' }
+          }
+        }
+      });
+    }
+
+    function renderRecentOrders(orders) {
+      const tbody = document.getElementById('recentOrdersBody');
+      tbody.innerHTML = '';
+      if (orders.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4" class="empty-state">Belum ada orders</td></tr>';
+        return;
+      }
+      orders.forEach(o => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+          <td><code>${o.order_code}</code></td>
+          <td>${o.product}</td>
+          <td>${o.quantity}</td>
+          <td>${new Date(o.created_at).toLocaleString('id-ID')}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // Override loadProducts from dashboard.js to also refresh stats
+    const originalLoadProducts = window.loadProducts || function() {};
+    window.loadProducts = function() {
+      originalLoadProducts();
+      loadStats();
+    };
+
+    // Initial load
+    loadProducts();
+    loadStats();
+  </script>
 </body>
 </html>

@@ -167,3 +167,6 @@ deleteModal.addEventListener('click', (e) => {
 
 // Initial load
 loadProducts();
+
+// Expose for dashboard integration
+window.loadProducts = loadProducts;
