@@ -76,6 +76,10 @@ app.get('/dashboard', (req, res) => {
   res.sendFile('dashboard.html', { root: path.join(__dirname, 'public') });
 });
 
+app.get('/barang', (req, res) => {
+  res.sendFile('barang.html', { root: path.join(__dirname, 'public') });
+});
+
 // API: Status
 app.get('/api/status', (req, res) => {
   res.json({

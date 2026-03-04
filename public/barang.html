@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasir AI - Manajemen Barang</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <!-- Top Header Bar -->
+  <div class="top-header">
+    <div class="logo">🛒 Kasir AI</div>
+  </div>
+  <div class="header-spacer"></div>
+
+  <div class="sidebar">
+    <h2>Menu</h2>
+    <ul>
+      <li><a href="/" class="">🏠 Home</a></li>
+      <li><a href="/barang" class="active">📦 Barang</a></li>
+      <li><a href="/dashboard" class="">📊 Dashboard</a></li>
+      <li><a href="/api/orders" onclick="event.preventDefault(); alert('Halaman Orders belum tersedia')">🧾 Orders</a></li>
+    </ul>
+  </div>
+
+  <div class="main">
+    <div class="main-header">
+      <h1>📦 Manajemen Barang</h1>
+      <button class="btn btn-success" onclick="openModal()">+ Tambah Barang</button>
+    </div>
+
+    <!-- Alert -->
+    <div id="alert" class="alert"></div>
+
+    <!-- Products Table -->
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Nama Barang</th>
+            <th>Harga (Rp)</th>
+            <th>Kategori</th>
+            <th>Ditambahkan</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="productsTable">
+          <tr><td colspan="6" class="empty-state">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Modal Form (Add/Edit) -->
+  <div id="formModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3 id="modalTitle">Tambah Barang</h3>
+        <button class="modal-close" onclick="closeModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="productForm">
+          <input type="hidden" id="editId">
+          <div class="form-group">
+            <label for="name">Nama Barang</label>
+            <input type="text" id="name" placeholder="Contoh: Kopi Hitam" required>
+          </div>
+          <div class="form-group">
+            <label for="price">Harga (Rp)</label>
+            <input type="text" id="price" placeholder="0" required>
+          </div>
+          <div class="form-group">
+            <label for="category">Kategori</label>
+            <select id="category" required>
+              <option value="">Pilih kategori</option>
+              <option value="Minuman">Minuman</option>
+              <option value="Makanan">Makanan</option>
+              <option value="Lainnya">Lainnya</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal()">Batal</button>
+        <button class="btn btn-success" onclick="submitForm()">Simpan</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Delete Confirmation -->
+  <div id="deleteModal" class="modal-overlay">
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Konfirmasi Hapus</h3>
+        <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p>Hapus barang <strong id="deleteProductName"></strong>?</p>
+        <p style="color: #e74c3c; margin-top: 10px;">Tindakan tidak dapat dibatalkan.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeDeleteModal()">Batal</button>
+        <button class="btn btn-danger" id="confirmDeleteBtn">Hapus</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="/js/barang.js"></script>
+</body>
+</html>
