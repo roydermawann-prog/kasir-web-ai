@@ -91,25 +91,27 @@ function loadProducts() {
       tableBody.innerHTML = '';
       if (data.length === 0) {
         tableBody.innerHTML = '<tr><td colspan="6" class="empty-state">Tidak ada barang. Tambahkan barang pertama!</td></tr>';
-        return;
+      } else {
+        data.forEach(p => {
+          const row = document.createElement('tr');
+          row.innerHTML = `
+            <td>${p.id}</td>
+            <td>${p.name}</td>
+            <td>Rp ${Number(p.price).toLocaleString('id-ID')}</td>
+            <td>${p.category}</td>
+            <td>${new Date(p.created_at).toLocaleDateString('id-ID')}</td>
+            <td>
+              <div class="action-btns">
+                <button class="btn" onclick="openModal({id:${p.id}, name:'${p.name}', price:${p.price}, category:'${p.category}'})">Edit</button>
+                <button class="btn btn-danger" onclick="openDeleteModal(${p.id}, '${p.name}')">Hapus</button>
+              </div>
+            </td>
+          `;
+          tableBody.appendChild(row);
+        });
       }
-      data.forEach(p => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-          <td>${p.id}</td>
-          <td>${p.name}</td>
-          <td>Rp ${Number(p.price).toLocaleString('id-ID')}</td>
-          <td>${p.category}</td>
-          <td>${new Date(p.created_at).toLocaleDateString('id-ID')}</td>
-          <td>
-            <div class="action-btns">
-              <button class="btn" onclick="openModal({id:${p.id}, name:'${p.name}', price:${p.price}, category:'${p.category}'})">Edit</button>
-              <button class="btn btn-danger" onclick="openDeleteModal(${p.id}, '${p.name}')">Hapus</button>
-            </div>
-          </td>
-        `;
-        tableBody.appendChild(row);
-      });
+      // Refresh stats after products loaded/updated
+      loadStats();
     })
     .catch(err => showAlert('Gagal memuat produk: ' + err.message, 'error'));
 }
@@ -167,6 +169,3 @@ deleteModal.addEventListener('click', (e) => {
 
 // Initial load
 loadProducts();
-
-// Expose for dashboard integration
-window.loadProducts = loadProducts;

@@ -242,16 +242,8 @@
       });
     }
 
-    // Override loadProducts from dashboard.js to also refresh stats
-    const originalLoadProducts = window.loadProducts || function() {};
-    window.loadProducts = function() {
-      originalLoadProducts();
-      loadStats();
-    };
-
     // Initial load
     loadProducts();
-    loadStats();
   </script>
 </body>
 </html>
