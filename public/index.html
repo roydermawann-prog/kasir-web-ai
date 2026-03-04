@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kasir AI - Sistem Point of Sale</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <div class="container">
+    <h1>🛒 Kasir AI (SQLite Edition)</h1>
+    <p>Sistem Point of Sale dengan database SQLite</p>
+    
+    <div class="status">
+      <strong>✅ Server berjalan!</strong><br>
+      Port: <%= PORT %><br>
+      Database: kasir.db<br>
+      Waktu: <%= new Date().toLocaleString('id-ID') %>
+    </div>
+
+    <div class="api-test">
+      <h3>Test API:</h3>
+      <button onclick="testAPI('products')">GET /api/products</button>
+      <button onclick="testAPI('orders')">POST /api/orders</button>
+      <button onclick="testAPI('orders-list')">GET /api/orders</button>
+      <pre id="result">Klik tombol di atas untuk test...</pre>
+    </div>
+
+    <h3>Endpoints tersedia:</h3>
+    <ul>
+      <li><code>GET /</code> - Halaman ini</li>
+      <li><code>GET /api/status</code> - Status server</li>
+      <li><code>GET /api/products</code> - List produk dari DB</li>
+      <li><code>GET /api/orders</code> - Riwayat orders</li>
+      <li><code>POST /api/orders</code> - Buat pesanan baru (body: {product, qty})</li>
+    </ul>
+  </div>
+
+  <script>
+    async function testAPI(endpoint) {
+      const resultEl = document.getElementById('result');
+      resultEl.textContent = 'Loading...';
+      
+      try {
+        const response = await fetch('/api/' + endpoint, {
+          method: endpoint === 'orders' ? 'POST' : 'GET',
+          headers: { 'Content-Type': 'application/json' },
+          body: endpoint === 'orders' ? JSON.stringify({ product: 'Kopi', qty: 2 }) : null
+        });
+        const data = await response.json();
+        resultEl.textContent = JSON.stringify(data, null, 2);
+      } catch (error) {
+        resultEl.textContent = 'Error: ' + error.message;
+      }
+    }
+  </script>
+</body>
+</html>
